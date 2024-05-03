@@ -246,6 +246,35 @@ Once the five definition steps are completed and the service project is generate
     </tbody>
 </table>
 
+### Kubernetes Helm Chart
+
+Access to a Kubernetes cluster and Helm are required. The values-example.yaml file includes a reference to an Nginx ingress.
+
+#### Create namespace and environment secrets
+
+```
+kubectl create namespace xoom-designer
+kubectl create secret generic xoom-designer-env-secret \
+    --namespace xoom-designer \
+    --from-literal=sql-user=xoom_test \
+    --from-literal=sql-password=vlingo123
+```
+
+#### Create a TLS secret
+
+```
+kubectl create secret tls xoom-designer-secret --cert=path/to/tls.crt --key=path/to/tls.key --namespace xoom-designer
+```
+
+#### Install/upgrade application via Helm
+
+Copy the values-example.yaml file (to values.yaml) and adjust accordingly.
+
+```
+helm upgrade --install xoom-designer xoom-designer --namespace=xoom-designer -f values.yaml
+```
+
+
 ## Collaboration
 
 Our team really appreciates collaboration, not only because it boosts VLINGO to greater value, but also for the fact that the more viewpoints we have the more competent and mature the VLINGO community will become. If you want to be a catalyst for moving the platform forward, take a tour of our [development guide](https://github.com/vlingo/xoom-designer/blob/master/DEV-GUIDE.md).

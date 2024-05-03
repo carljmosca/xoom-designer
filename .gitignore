@@ -28,3 +28,5 @@ dependency-reduced-pom.xml
 xoom-designer-dist.jar
 designer.tar
 designer.zip
+values.yaml
+xoom-designer-env-secret.yaml

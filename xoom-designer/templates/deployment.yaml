@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "xoom-designer.fullname" . }}
+  labels:
+    {{- include "xoom-designer.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "xoom-designer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "xoom-designer.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "xoom-designer.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: check-db-ready
+          image: "{{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}"
+          {{- include "database.environment" . | nindent 10 }}
+          command: ['sh', '-c', 
+            'until pg_isready -h $SQL_HOST -U $SQL_USER -p $SQL_PORT; 
+            do echo waiting for database; sleep 2; done;']          
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.xoomDesigner.image.repository }}:{{ .Values.xoomDesigner.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.xoomDesigner.image.pullPolicy }}
+          {{- include "xoom-designer.environment" . | nindent 10 }}          
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          # livenessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: http
+          # readinessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+        - name: xoom-schemata
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.xoomSchemata.image.repository }}:{{ .Values.xoomSchemata.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.xoomSchemata.image.pullPolicy }}
+          {{- include "xoom-schemata.environment" . | nindent 10 }}          
+          ports:
+            - name: database
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP            
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
